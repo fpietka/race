@@ -59,7 +59,6 @@ const unsigned char keyCoresp[7] = {
   0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40,
 };
 
-
 #endif
 
 #define DOWN(x)	keystates[x]
@@ -73,6 +72,11 @@ struct joy_range
 {
     int minx, maxx, miny, maxy;
 } range;
+
+bool joy_up = false;
+bool joy_down = false;
+bool joy_left = false;
+bool joy_right = false;
 
 #ifdef __GP32__
 void InitInput()
@@ -93,7 +97,7 @@ BOOL InitInput(HWND hwnd)
 	m_sysInfo[NGP].InputKeys[KEY_BUTTON_Y]	= SDLK_LSHIFT;
 	m_sysInfo[NGP].InputKeys[KEY_BUTTON_R]	= SDLK_BACKSPACE;
 	m_sysInfo[NGP].InputKeys[KEY_BUTTON_L]	= SDLK_TAB;
-	
+
 	m_sysInfo[NGPC].InputKeys[KEY_UP]			= SDLK_UP;
 	m_sysInfo[NGPC].InputKeys[KEY_DOWN]		= SDLK_DOWN;
 	m_sysInfo[NGPC].InputKeys[KEY_LEFT]		= SDLK_LEFT;
@@ -106,6 +110,44 @@ BOOL InitInput(HWND hwnd)
 	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_Y]	= SDLK_LSHIFT;
 	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_R]	= SDLK_BACKSPACE;
 	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_L]	= SDLK_TAB;
+
+    // Handle joystick
+    fprintf(stdout,"Il y a %d joysticks.", SDL_NumJoysticks());
+    SDL_Joystick *joystick;
+    joystick = SDL_JoystickOpen(0);
+
+    int x_axis = SDL_JoystickGetAxis (joystick, 0);
+    int y_axis = SDL_JoystickGetAxis (joystick, 1);
+
+    fprintf(stdout, "X-axis: %f\n", x_axis);
+    fprintf(stdout, "Y-axis: %f\n", y_axis);
+
+    range.minx = -32767;//INT_MIN;
+    range.maxx = 32767;//INT_MAX;
+    range.miny = -32767;//INT_MIN;
+    range.maxy = 32767;//INT_MAX;
+
+	if(y_axis > (range.miny + 2*(range.maxy - range.miny)/3))
+	{
+	    //*InputByte |= 0x02;
+        joy_down = true;
+	}
+	if(y_axis < (range.miny + (range.maxy - range.miny)/3))
+	{
+	    //*InputByte |= 0x01;
+        joy_up = true;
+	}
+	if(x_axis > (range.minx + 2*(range.maxx - range.minx)/3))
+	{
+	    //*InputByte |= 0x08;
+        joy_right = true;
+	}
+	if(x_axis < (range.minx + (range.maxx - range.minx)/3))
+	{
+	    //*InputByte |= 0x04;
+        joy_left = true;
+	}
+
 #else
 #ifndef TARGET_PSP
 #ifndef __GP32__
@@ -199,6 +241,7 @@ void UpdateInputState()
     //SDL_Event event;
 
 #ifdef TARGET_PSP
+    int foo = 1;
     while(SDL_PollEvent(&event))
     {
     }
@@ -263,7 +306,7 @@ void UpdateInputState()
     while(SDL_PollEvent(&event))
     {
     }
-		
+
     if (DOWN(SDLK_ESCAPE) && DOWN(SDLK_RETURN))
         m_bIsActive = FALSE;//Flavor exit emulation
 
@@ -289,13 +332,13 @@ void UpdateInputState()
     if (DOWN(si->InputKeys[KEY_SELECT]))
         *InputByte|= keyCoresp[GameConf.OD_Joy[11]];
 
-    if (DOWN(si->InputKeys[KEY_UP]))
+    if (DOWN(si->InputKeys[KEY_UP]) || joy_up)
         *InputByte|= 0x01;
-    if (DOWN(si->InputKeys[KEY_DOWN]))
+    if (DOWN(si->InputKeys[KEY_DOWN]) || joy_down)
         *InputByte|= 0x02;
-    if (DOWN(si->InputKeys[KEY_LEFT]))
+    if (DOWN(si->InputKeys[KEY_LEFT]) || joy_left)
         *InputByte|= 0x04;
-    if (DOWN(si->InputKeys[KEY_RIGHT]))
+    if (DOWN(si->InputKeys[KEY_RIGHT]) || joy_right)
         *InputByte|= 0x08;
 /*
     if (DOWN(SDLK_KP_PLUS))

@@ -91,4 +91,6 @@ extern void mainemuinit();
 extern void screen_showtopmenu(void);
 extern void print_string_video(int x, int y, const char *s);
 
+extern SDL_Joystick *joystick;
+
 #endif
